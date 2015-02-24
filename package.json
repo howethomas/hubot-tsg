@@ -1,0 +1,51 @@
+{
+  "name": "hubot-tsg"
+  "version": "0.0.1",
+  "author": {
+    "name": "Thomas Howe",
+    "url": "github.com/howethomas"
+  },
+  "contributors": [
+    {
+      "name": "Thomas Howe",
+      "email": "ghostofbasho@gmail.com"
+    }
+  ],
+  "keywords": [
+    "hubot",
+    "tsg",
+    "adapter"
+  ],
+  "description": "A TSG adapter for hubot",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://opensource.org/licenses/mit-license.php"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/howethomas/hubot-tsg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/howethomas/hubot-tsg/issues",
+    "email": "ghostofbasho@gmail.com"
+  },
+  "dependencies": {
+    "rwlock": "^5.0.0",
+    "underscore": "^1.7.0"
+  },
+  "devDependencies": {
+    "coffee-script": ">=1.2.0"
+  },
+  "main": "./src/nexmo",
+  "engines": {
+    "node": ">=0.4.7"
+  },
+  "readmeFilename": "README.md",
+  "homepage": "https://github.com/howethomas/hubot-tsg",
+  "_id": "hubot-nexmo@0.0.1",
+  "scripts": {},
+  "_shasum": "37adb06cfbb4b316f181359469f4618375f383b1",
+  "_from": "hubot-tsg@"
+}
