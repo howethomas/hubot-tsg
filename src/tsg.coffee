@@ -86,7 +86,7 @@ class Tsg extends Adapter
     self = @
     callback_path = process.env.TSG_CALLBACK_PATH or "/inbound/tsg"
     listen_port = process.env.TSG_LISTEN_PORT or 80
-    routable_address = process.env.TSG_CALLBACK_URL or "104.236.245.180"
+    routable_address = process.env.TSG_CALLBACK_URL or "127.0.0.1"
 
     callback_url = "#{routable_address}#{callback_path}"
     app = express()
