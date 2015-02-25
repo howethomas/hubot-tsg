@@ -38,14 +38,12 @@
   "devDependencies": {
     "coffee-script": ">=1.2.0"
   },
-  "main": "./src/nexmo",
+  "main": "./src/tsg",
   "engines": {
     "node": ">=0.4.7"
   },
   "readmeFilename": "README.md",
   "homepage": "https://github.com/howethomas/hubot-tsg",
-  "_id": "hubot-nexmo@0.0.1",
-  "scripts": {},
-  "_shasum": "37adb06cfbb4b316f181359469f4618375f383b1",
-  "_from": "hubot-tsg@"
+  "_id": "hubot-nexmo@0.0.2",
+  "scripts": {}
 }

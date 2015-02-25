@@ -10,6 +10,8 @@ Os = require("os")
 Request = require('request')
 ReadWriteLock = require('rwlock')
 Util = require('util')
+BodyParser = require('body-parser')
+Multer = require('multer') 
 
 class Tsg extends Adapter
 
@@ -20,10 +22,9 @@ class Tsg extends Adapter
 
     @ee= new Emitter
     @robot = robot
-    @key= process.env.TSG_KEY
     @secret= process.env.TSG_SECRET
     @THROTTLE_RATE_MS = 1500
-    @TSG_SEND_MSG_URL = "http://rest.tsg.com/sms/json"
+    @TSG_SEND_MSG_URL = "http://sms.tsgglobal.com/jsonrpc"
     @TSG_UPDATE_NUMBER_URL = "http://rest.tsg.com/number/update"
 
     # Run a one second loop that checks to see if there are messages to be sent
@@ -40,55 +41,44 @@ class Tsg extends Adapter
     if request?
       @report "Making request to #{request.url}"
       Request.post(
-        request.url,
         request.options,
         (error, response, body) =>
-          status_message = "Call to #{request.url} #{request.options.qs.msisdn}"
+          status_message = "Call to #{request.url} #{request.options.body.method}, #{JSON.stringify request.options.body.params}"
           if !error and response.statusCode == 200
             @report  status_message + " was successful."
           else
             @report  status_message + " failed with #{response.statusCode}:#{response.statusMessage}"
       )
 
-  post_to_tsg: (url, options) =>
+  post_to_tsg: (options) =>
     request =
-      url: url
+      url: options.url
       options: options
     @pending_tsg_requests.push request
 
-  send_tsg_message: (to, from, text) ->
+  send_tsg_message: (to, from, text) =>
     options =
+      url: @TSG_SEND_MSG_URL
       qs:
-        api_key: @key
-        api_secret: @secret
-        country: "US"
-        to: to
-        from: from
-        text: text
-    @post_to_tsg(@TSG_SEND_MSG_URL, options)
+        key: @secret
+      body:
+        method: "sms.send"
+        id: 0
+        params: [from, to, text, 1]
+      json: true
+    @post_to_tsg(options)
 
-  set_callback: (number, country, callback_path) =>
-    @report "Setting number #{number} to #{callback_path}"
-    options =
-      qs:
-        api_key: @key
-        api_secret: @secret
-        country: "US"
-        msisdn: number
-        moHttpUrl: callback_path
-    @post_to_tsg(@TSG_UPDATE_NUMBER_URL, options)
-
-  send: (envelope, strings...) ->
+  send: (envelope, strings...) =>
     {user, room} = envelope
     user = envelope if not user # pre-2.4.2 style
     from = user.room
     to = user.name
     @send_tsg_message(to, from, string) for string in strings
 
-  emote: (envelope, strings...) ->
+  emote: (envelope, strings...) =>
     @send envelope, "* #{str}" for str in strings
 
-  reply: (envelope, strings...) ->
+  reply: (envelope, strings...) =>
     strings = strings.map (s) -> "#{envelope.user.name}: #{s}"
     @send envelope, strings...
 
@@ -100,30 +90,35 @@ class Tsg extends Adapter
 
     callback_url = "#{routable_address}#{callback_path}"
     app = express()
-    app.get callback_path, (req, res) =>
+    app.use(BodyParser.json())
+    app.use(BodyParser.urlencoded({ extended: true }))
+    app.use(Multer())
+
+    app.post callback_path, (req, res) =>
       # First, see if this user is in the system.
       # If not, then let's make a new user for this far end.
       #
       res.writeHead 200,     "Content-Type": "text/plain"
-      res.write "Message received"
       res.end()
 
-      if req.query.msisdn?
-        user_name = user_id = req.query.remote_number
-        room_name = req.query.host_number
+      @report(req.body)
+      if req.body.remote_number?
+        user_name = user_id = req.body.remote_number.replace("+","")
+        room_name = req.body.host_number.replace("+","")
         user = @robot.brain.userForId user_name, name: user_name, room: room_name
-        inbound_message = new TextMessage user, req.query.message, 'message_id'
+        inbound_message = new TextMessage user, req.body.message, 'message_id'
+        @report "Received #{inbound_message} from #{user_name} bound for #{room_name}"
         @robot.receive inbound_message
         @report "Received #{inbound_message} from #{user_name} bound for #{room_name}"
         return
 
 
 
-    server = app.listen(listen_port, ->
+    server = app.listen(listen_port, =>
       host = server.address().address
       port = server.address().port
-      console.log "Tsg listening locally at http://%s:%s", host, port
-      console.log "External URL is #{callback_url}"
+      @report "Tsg listening locally at http://%s:%s", host, port
+      @report "External URL is #{callback_url}"
       return
     )
 
@@ -133,10 +128,7 @@ class Tsg extends Adapter
     redis_client = Redis.createClient()
     redis_client.smembers("TSG_NUMBERS",
       (err, reply) =>
-        console.log "Registering the following numbers: #{reply.join()}"
-        for number in reply
-          @set_callback number, "US", callback_url
-          @active_numbers.push number
+        @report "Not registering the following numbers: #{reply.join()}"
       )
 
 exports.use = (robot) ->
